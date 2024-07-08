@@ -171,8 +171,10 @@ function M.defaults()
       },
     },
     markdown = {
+      ---@type table<string, function|table>
       hover = {
         ["|(%S-)|"] = vim.cmd.help, -- vim help links
+        ["%[.-%]%((file:%S-)%)"] = { require("noice.util").openFile, priority = 10 },
         ["%[.-%]%((%S-)%)"] = require("noice.util").open, -- markdown links
       },
       highlights = {

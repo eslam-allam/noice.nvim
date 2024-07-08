@@ -58,6 +58,22 @@ function M.open(uri)
   end
 end
 
+---comment
+---@param uri string
+function M.openFile(uri)
+  local file_path = uri:match("file:([^#]+)")
+  if not file_path then
+    return
+  end
+  local linnr = uri:match("file:[^#]+#(%d+)")
+  local command = { "e" }
+  if linnr then
+    table.insert(command, "+" .. linnr)
+  end
+  table.insert(command, file_path)
+  vim.cmd(table.concat(command, " "))
+end
+
 ---@param fn fun():any
 function M.ignore_events(fn)
   local ei = vim.go.eventignore

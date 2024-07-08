@@ -222,19 +222,43 @@ function M.keys(buf)
       local line = vim.api.nvim_get_current_line()
       local pos = vim.api.nvim_win_get_cursor(0)
       local col = pos[2] + 1
+      local matchingHandlers = {}
 
-      for pattern, handler in pairs(Config.options.markdown.hover) do
+      for pattern, handlerConfig in pairs(Config.options.markdown.hover) do
+        local handler, priority
+        if type(handlerConfig) == "table" then
+          handler = handlerConfig[1]
+          priority = handlerConfig["priority"]
+        else
+          handler = handlerConfig
+        end
+        if not priority then
+          priority = 0
+        end
+
         local from = 1
         local to, url
         while from do
           from, to, url = line:find(pattern, from)
           if from and col >= from and col <= to then
-            return handler(url)
+            table.insert(matchingHandlers, { url = url, handler = handler, priority = priority })
           end
           if from then
             from = to + 1
           end
         end
+      end
+      if not vim.tbl_isempty(matchingHandlers) then
+        local highestPrio = 0
+        local highestIndex = 1
+        for i, value in ipairs(matchingHandlers) do
+          if value.priority > highestPrio then
+            highestPrio = value.priority
+            highestIndex = i
+          end
+        end
+        local handler = matchingHandlers[highestIndex]
+        return handler.handler(handler.url)
       end
       vim.api.nvim_feedkeys(lhs, "n", false)
     end, { buffer = buf, silent = true })
