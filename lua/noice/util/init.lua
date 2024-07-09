@@ -60,18 +60,18 @@ end
 
 ---comment
 ---@param uri string
-function M.openFile(uri)
+function M.openHoverFile(uri)
   local file_path = uri:match("file:([^#]+)")
   if not file_path then
     return
   end
   local linnr = uri:match("file:[^#]+#(%d+)")
-  local command = { "e" }
+  local bufnr = vim.uri_to_bufnr(uri)
+  vim.api.nvim_win_close(0, true)
+  vim.api.nvim_set_current_buf(bufnr)
   if linnr then
-    table.insert(command, "+" .. linnr)
+    vim.api.nvim_win_set_cursor(0, { tonumber(linnr), 0 })
   end
-  table.insert(command, file_path)
-  vim.cmd(table.concat(command, " "))
 end
 
 ---@param fn fun():any
