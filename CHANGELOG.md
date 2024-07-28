@@ -1,5 +1,69 @@
 # Changelog
 
+## [4.5.0](https://github.com/folke/noice.nvim/compare/v4.4.7...v4.5.0) (2024-07-25)
+
+
+### Features
+
+* redraw improvements ([1698725](https://github.com/folke/noice.nvim/commit/1698725a663aca56bcd07a0e405bc441a5f6613b))
+
+## [4.4.7](https://github.com/folke/noice.nvim/compare/v4.4.6...v4.4.7) (2024-07-24)
+
+
+### Bug Fixes
+
+* **hacks:** better on_module ([c2ba96e](https://github.com/folke/noice.nvim/commit/c2ba96e09c7544e0ebba2120765fb2a081983d7f))
+
+## [4.4.6](https://github.com/folke/noice.nvim/compare/v4.4.5...v4.4.6) (2024-07-24)
+
+
+### Bug Fixes
+
+* **health:** dont check health on startup ([9df2913](https://github.com/folke/noice.nvim/commit/9df2913ee9b6440f65d4debf8d2eeec07c249dea))
+* **text:** deal with invalid extmark offsets. Fixes [#875](https://github.com/folke/noice.nvim/issues/875) ([15d63b8](https://github.com/folke/noice.nvim/commit/15d63b8da0a2c6b7ad2d3dbe7b473b78710c90f3))
+
+## [4.4.5](https://github.com/folke/noice.nvim/compare/v4.4.4...v4.4.5) (2024-07-22)
+
+
+### Bug Fixes
+
+* **hacks:** cmp loading ([4f5d1b8](https://github.com/folke/noice.nvim/commit/4f5d1b89daa5b5db4a85f3badf35d0e7eea86308))
+
+## [4.4.4](https://github.com/folke/noice.nvim/compare/v4.4.3...v4.4.4) (2024-07-21)
+
+
+### Bug Fixes
+
+* **hacks:** schedule fixing cmp. Fixes [#910](https://github.com/folke/noice.nvim/issues/910) ([b7515c0](https://github.com/folke/noice.nvim/commit/b7515c038ad9047e0332ca379a71d7640f53c919))
+* remove a bunch of hacks that are no longer needed ([5e55d0d](https://github.com/folke/noice.nvim/commit/5e55d0d46f672077f6ae0b69f4f6dfeb63b9ea33))
+
+
+### Performance Improvements
+
+* **scrollbar:** only show when needed ([7723c2b](https://github.com/folke/noice.nvim/commit/7723c2b1e699708dbe3b2717b21088a09f0eec75))
+
+## [4.4.3](https://github.com/folke/noice.nvim/compare/v4.4.2...v4.4.3) (2024-07-16)
+
+
+### Bug Fixes
+
+* **mini:** no need to show scrollbar ([c661f95](https://github.com/folke/noice.nvim/commit/c661f955055b7341768b044160002b25bddd24af))
+* **syntax:** prevent invalid group names. Closes [#903](https://github.com/folke/noice.nvim/issues/903) ([3b5ea55](https://github.com/folke/noice.nvim/commit/3b5ea551448bd769976428458c11ae3f5849b7ba))
+
+## [4.4.2](https://github.com/folke/noice.nvim/compare/v4.4.1...v4.4.2) (2024-07-15)
+
+
+### Performance Improvements
+
+* **message:** replace vim.b.messages with lua variable ([#898](https://github.com/folke/noice.nvim/issues/898)) ([7ecc05d](https://github.com/folke/noice.nvim/commit/7ecc05d44c3ed8b9bfa5f6196c0da41d58f93218))
+
+## [4.4.1](https://github.com/folke/noice.nvim/compare/v4.4.0...v4.4.1) (2024-07-12)
+
+
+### Bug Fixes
+
+* **views:** show confirm at the top so it doesn't obscure the buffer ([2a97893](https://github.com/folke/noice.nvim/commit/2a9789310b6b87e197f27c36e5667a9f1bb4bb24))
+
 ## [4.4.0](https://github.com/folke/noice.nvim/compare/v4.3.1...v4.4.0) (2024-07-06)
 
 

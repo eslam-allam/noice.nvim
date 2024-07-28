@@ -2,8 +2,8 @@ local require = require("noice.util.lazy")
 
 local Api = require("noice.api")
 local Cmdline = require("noice.ui.cmdline")
-local Router = require("noice.message.router")
 local Util = require("noice.util")
+local uv = vim.uv or vim.loop
 
 -- HACK: a bunch of hacks to make Noice behave
 local M = {}
@@ -17,16 +17,36 @@ end
 
 function M.enable()
   M.reset_augroup()
-  M.fix_input()
-  M.fix_redraw()
   M.fix_cmp()
   M.fix_vim_sleuth()
-  -- M.fix_cmdpreview()
+  M.fix_redraw()
 
   -- Hacks for Neovim < 0.10
   if vim.fn.has("nvim-0.10") == 0 then
     M.fix_incsearch()
   end
+end
+
+function M.fix_redraw()
+  local timer = uv.new_timer()
+  timer:start(
+    0,
+    30,
+    vim.schedule_wrap(function()
+      if not Util.is_search() then
+        if vim.api.nvim__redraw then
+          vim.api.nvim__redraw({ flush = true, cursor = true })
+        else
+          vim.cmd.redraw()
+        end
+      end
+      Cmdline.fix_cursor()
+    end)
+  )
+  table.insert(M._disable, function()
+    timer:stop()
+    timer:close()
+  end)
 end
 
 function M.fix_vim_sleuth()
@@ -57,15 +77,6 @@ function M.fix_nohlsearch()
   M.fix_nohlsearch()
 end
 
----@see https://github.com/neovim/neovim/issues/20793
-function M.draw_cursor()
-  if vim.api.nvim__redraw then
-    vim.api.nvim__redraw({ cursor = true })
-  else
-    require("noice.util.ffi").setcursor_mayforce(true)
-  end
-end
-
 ---@see https://github.com/neovim/neovim/issues/17810
 function M.fix_incsearch()
   ---@type integer|nil
@@ -90,123 +101,6 @@ function M.fix_incsearch()
       end
     end,
   })
-end
-
--- we need to intercept redraw so we can safely ignore message triggered by redraw
--- This wraps vim.cmd, nvim_cmd, nvim_command and nvim_exec
----@see https://github.com/neovim/neovim/issues/20416
-M.inside_redraw = false
-function M.fix_redraw()
-  local nvim_cmd = vim.api.nvim_cmd
-
-  local function wrap(fn, ...)
-    local inside_redraw = M.inside_redraw
-
-    M.inside_redraw = true
-
-    ---@type boolean, any
-    local ok, ret = pcall(fn, ...)
-
-    -- check if the ui needs updating
-    Util.try(Router.update)
-
-    if not inside_redraw then
-      M.inside_redraw = false
-    end
-
-    if ok then
-      return ret
-    end
-    error(ret)
-  end
-
-  vim.api.nvim_cmd = function(cmd, ...)
-    if type(cmd) == "table" and cmd.cmd and cmd.cmd == "redraw" then
-      return wrap(nvim_cmd, cmd, ...)
-    else
-      return nvim_cmd(cmd, ...)
-    end
-  end
-
-  local nvim_command = vim.api.nvim_command
-  vim.api.nvim_command = function(cmd, ...)
-    if cmd == "redraw" then
-      return wrap(nvim_command, cmd, ...)
-    else
-      return nvim_command(cmd, ...)
-    end
-  end
-
-  local nvim_exec = vim.api.nvim_exec
-  vim.api.nvim_exec = function(cmd, ...)
-    if type(cmd) == "string" and cmd:find("redraw") then
-      -- WARN: this will potentially lose messages before or after the redraw ex command
-      -- example: echo "foo" | redraw | echo "bar"
-      -- the 'foo' message will be lost
-      return wrap(nvim_exec, cmd, ...)
-    else
-      return nvim_exec(cmd, ...)
-    end
-  end
-
-  table.insert(M._disable, function()
-    vim.api.nvim_cmd = nvim_cmd
-    vim.api.nvim_command = nvim_command
-    vim.api.nvim_exec = nvim_exec
-  end)
-end
-
----@see https://github.com/neovim/neovim/issues/20311
-M.before_input = false
-function M.fix_input()
-  local function wrap(fn, skip)
-    return function(...)
-      if skip and skip(...) then
-        return fn(...)
-      end
-
-      -- make sure the cursor is drawn before blocking
-      M.draw_cursor()
-
-      local Manager = require("noice.message.manager")
-
-      -- do any updates now before blocking
-      M.before_input = true
-      Router.update()
-
-      ---@type boolean, any
-      local ok, ret = pcall(fn, ...)
-
-      -- clear any message right after input
-      Manager.clear({ event = "msg_show", kind = { "echo", "echomsg", "" } })
-
-      M.before_input = false
-      if ok then
-        return ret
-      end
-      error(ret)
-    end
-  end
-
-  local function skip(expr)
-    return expr ~= nil
-  end
-  local getchar = vim.fn.getchar
-  local getcharstr = vim.fn.getcharstr
-  local inputlist = vim.fn.inputlist
-  -- local confirm = vim.fn.confirm
-
-  vim.fn.getchar = wrap(vim.fn.getchar, skip)
-  vim.fn.getcharstr = wrap(vim.fn.getcharstr, skip)
-  vim.fn.inputlist = wrap(vim.fn.inputlist, nil)
-  -- vim.fn.confirm = wrap(vim.fn.confirm, nil)
-
-  table.insert(M._disable, function()
-    vim.fn.getchar = getchar
-    vim.fn.getcharstr = getcharstr
-    vim.fn.inputlist = inputlist
-    -- vim.fn.confirm = confirm
-  end)
 end
 
 -- Fixes cmp cmdline position
@@ -242,19 +136,8 @@ function M.fix_cmp()
   end)
 end
 
-function M.fix_cmdpreview()
-  vim.api.nvim_create_autocmd("CmdlineChanged", {
-    group = M.group,
-    callback = function()
-      local ffi = require("noice.util.ffi")
-      ffi.cmdpreview = false
-      vim.cmd([[redraw]])
-      Util.try(require("noice.message.router").update)
-    end,
-  })
-end
-
 M.SPECIAL = "Þ"
+---@deprecated
 function M.cmdline_force_redraw()
   if vim.fn.has("nvim-0.11") == 1 then
     -- no longer needed on nightly
@@ -270,6 +153,7 @@ end
 
 ---@type string?
 M._guicursor = nil
+---@deprecated
 function M.hide_cursor()
   if M._guicursor == nil then
     M._guicursor = vim.go.guicursor
@@ -283,6 +167,7 @@ function M.hide_cursor()
   M._disable.guicursor = M.show_cursor
 end
 
+---@deprecated
 function M.show_cursor()
   if M._guicursor then
     if not Util.is_exiting() then
@@ -299,22 +184,18 @@ function M.show_cursor()
   end
 end
 
+---@param modname string
 ---@param fn fun(mod)
-function M.on_module(module, fn)
-  if package.loaded[module] then
-    return fn(package.loaded[module])
+function M.on_module(modname, fn)
+  if type(package.loaded[modname]) == "table" then
+    return fn(package.loaded[modname])
   end
-
-  package.preload[module] = function()
-    package.preload[module] = nil
-    for _, loader in pairs(package.loaders) do
-      local ret = loader(module)
-      if type(ret) == "function" then
-        local mod = ret()
-        fn(mod)
-        return mod
-      end
-    end
+  package.preload[modname] = function()
+    package.preload[modname] = nil
+    package.loaded[modname] = nil
+    local mod = require(modname)
+    fn(mod)
+    return mod
   end
 end
 
